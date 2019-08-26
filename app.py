@@ -15,6 +15,7 @@ def extractTags():
 	with open('tags.txt','rb') as fp:
 		tags = pickle.load(fp)
 		nlp = spacy.load('en')
+		tags.remove('connect')
 		entity = Entity(keywords_list=tags)
 		nlp.add_pipe(entity,last=True)
 		# txt = unicode(query,encoding="utf-8")
