@@ -4,8 +4,10 @@ import spacy
 import pickle
 import json
 from spacy_lookup import Entity
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/extractTags')
 def extractTags():
