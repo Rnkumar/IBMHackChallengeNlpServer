@@ -3,6 +3,7 @@ from flask import request, send_file
 import spacy
 import pickle
 import json
+import string	
 from spacy_lookup import Entity
 from spacy_hunspell import spaCyHunSpell
 from flask_cors import CORS
@@ -42,4 +43,25 @@ def spellCheck():
 			word = suggestions[max_word_index]
 			original_data[i]=word
 	response = " ".join(original_data)
+	return json.dumps({"data":response})
+
+
+@app.route('/extensionextractor')
+def extensionExtractor():
+	query = request.args.get('query')
+	nlp = spacy.load('en')
+	punctuations = string.punctuation
+
+	response = []
+	doc = nlp(query)
+	for token in doc:
+		if token.is_punct:
+			response.append(token.text)
+		elif str(token.pos_) == "PUNCT":
+			response.append(token.text)
+		else:
+			for i in punctuations:
+				if i in token.text:
+					response.append(token.text)
+					break
 	return json.dumps({"data":response})
