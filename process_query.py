@@ -79,22 +79,40 @@ def extension_extractor(query):
     return response
 
 
-def stack_overflow_request(question, tag_set):
-    tag_set_str = ";".join(tag_set)
-    url = "https://api.stackexchange.com//2.2/search/advanced?order=desc&sort=relevance&q=" + question + "&tagged=" + tag_set_str + "&site=stackoverflow&filter=!0V-ZwUEu0wMbto7XPem1M8Bnq"
+def send_request(question,tag):
+    url = "https://api.stackexchange.com//2.2/search/advanced?order=desc&sort=relevance&q=" + question + "&tagged=" + tag + "&site=stackoverflow&filter=!0V-ZwUEu0wMbto7XPem1M8Bnq"
     response = requests.get(url)
     if response.status_code == requests.codes.ok:
         resp_json = response.json()
-        # if len(resp_json["items"]) == 0:
-        #     return stack_overflow_request(question, tag_set)
-        items = []
-        for question in resp_json["items"]:
-            if "answers" in question:
-                items.append(question)
-        return items
+        if len(resp_json["items"]) == 0:
+            return None,False
+        return resp_json["items"],True
     else:
-        return []
-        # return stack_overflow_request(question, tag_set)
+        return False
+
+
+def validate_answers(resp_items):
+    items = []
+    for question in resp_items:
+        if "answers" in question:
+            items.append(question)
+    return items
+
+
+def stack_overflow_request(question, tag_set):
+    #Verifying if response is present in all tags
+    tag_set_str = ";".join(tag_set)
+    resp_items,flag = send_request(question,tag_set_str)
+    if flag:
+        return validate_answers(resp_items)
+
+    #Verfying if atleast one tag matches
+    for tag in tag_set:
+            resp_items, flag = send_request(question,tag)
+            if not flag:
+                continue
+            else:
+                return validate_answers(resp_items)
 
 
 def sentiment_analysis(data):
