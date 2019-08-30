@@ -165,14 +165,15 @@ def process_query(user_query,sentiment):
 
     so_question_items = stack_overflow_request(spell_correct, tag_list)
     answers = process_answers(so_question_items)
-    if sentiment:
+    if sentiment == "true":
         answers = sentiment_analysis_aggregator(answers)
     return so_question_items,answers
 
 if __name__ == "__main__":
-    so_question_items = stack_overflow_request("how to run node app.js",[])
+    so_question_items = stack_overflow_request("how to calculate similarity between two lists python",[])
     answers = process_answers(so_question_items)
-    answers = sentiment_analysis_aggregator(answers)
+    #answers = sentiment_analysis_aggregator(answers)
+    print([i["title"] for i in so_question_items])
     # print(len(answers))
     # print(answers[0].keys())
     #sentiment_analysis_aggregator(answers)
