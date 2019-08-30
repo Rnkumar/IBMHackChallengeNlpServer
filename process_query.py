@@ -3,6 +3,7 @@ import pickle
 
 import string
 from spacy_lookup import Entity
+from spacy.tokens import Token
 from spacy_hunspell import spaCyHunSpell
 import requests
 import json
@@ -59,6 +60,8 @@ def spell_check(query, indices_to_ignore):
             original_data[i] = word
     response = " ".join(original_data)
     nlp.remove_pipe('hunspell')
+    Token.remove_extension("hunspell_spell")
+    Token.remove_extension("hunspell_suggest")
     return response
 
 
@@ -113,6 +116,7 @@ def stack_overflow_request(question, tag_set):
                 continue
             else:
                 return validate_answers(resp_items)
+    return []
 
 
 def sentiment_analysis(data):
@@ -124,28 +128,57 @@ def sentiment_analysis(data):
     response = service.analyze(
         text=data,
         features=Features(sentiment=SentimentOptions())).get_result()
-    return response["sentiment"]["document"]
+    return response["sentiment"]["document"]["score"]
 
 
-def process_answers_apply_sentiment(items):
+def process_answers(items):
     answers = []
     for question in items:
-        answers.append(AnswerData(question["answers"]))
+        for answer in question["answers"]:
+            answers.append(answer)
     return answers
 
 
-def process_query(user_query):
+def sentiment_analysis_aggregator(answers):
+    scores = []
+    cnt = 0
+    for answer in answers:
+        data = ""
+        if "comments" not in answer:
+            continue
+        for comment in answer["comments"]:
+            data+=comment["body"]
+        resp = sentiment_analysis(data)
+        scores.append({"answer":answer,"score":resp})
+        if cnt == 3:
+            break
+        cnt+=1
+    print([a["score"] for a in scores])
+    scores = sorted(scores, key = lambda i: i['score'],reverse=True) 
+    return [a["answer"] for a in scores]
+
+def process_query(user_query,sentiment):
     indices = extension_extractor(user_query)
     tag_list, tagIndices = extract_tags(user_query)
 
     spell_correct = spell_check(user_query, indices + tagIndices)
 
     so_question_items = stack_overflow_request(spell_correct, tag_list)
-    return so_question_items
+    answers = process_answers(so_question_items)
+    if sentiment:
+        answers = sentiment_analysis_aggregator(answers)
+    return so_question_items,answers
 
-# print(sentiment_analysis("I fell really bad towards how i get treated!"))
+if __name__ == "__main__":
+    so_question_items = stack_overflow_request("how to run node app.js",[])
+    answers = process_answers(so_question_items)
+    answers = sentiment_analysis_aggregator(answers)
+    # print(len(answers))
+    # print(answers[0].keys())
+    #sentiment_analysis_aggregator(answers)
+    # print(sentiment_analysis("I fell really bad towards how i get treated!"))
 
-# print(len(so_question_items))
-# print(process_answers_apply_sentiment(so_question_items))
-# print(spell_correct)
-# print(tag_list)
+    # print(len(so_question_items))
+    # print(process_answers_apply_sentiment(so_question_items))
+    # print(spell_correct)
+    # print(tag_list)

@@ -8,9 +8,14 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-
 @app.route('/fetchdata')
 def fetchdata():
     query = request.args.get('query')
-    response = pq.process_query(query)
-    return json.dumps({"items": response})
+    sentiment = request.args.get('sentiment')
+    response,answers = pq.process_query(query,sentiment)
+    print("response sent back")
+    return json.dumps({"items": response,"answers":answers})
+
+@app.route('/')
+def home():
+    return "Welcome to the NLP Server by Team Techieez"
